@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loky-Craft-Panel</title>
+<style>
+  :root { --bg: #111827; --card: #1F2937; --text: #FFFFFF; --primary: #10B981; --sub: #9CA3AF; }
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif; }
+  body { background: var(--bg); color: var(--text); padding: 20px; }
+.login { max-width: 400px; margin: 50px auto; background: var(--card); padding: 30px; border-radius: 16px; text-align: center; }
+.login h1 { color: var(--primary); margin-bottom: 10px; }
+.login p { color: var(--sub); margin-bottom: 20px; }
+  input, select, textarea { width: 100%; padding: 12px; margin: 8px 0; background: var(--bg); border: 1px solid var(--sub); color: var(--text); border-radius: 8px; }
+  input[type="file"] { padding: 8px; }
+  button { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin: 10px 0; }
+  button:disabled { background: var(--sub); cursor: not-allowed; }
+.panel { display: none; max-width: 800px; margin: 0 auto; }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.add-btn { width: auto; padding: 10px 20px; font-size: 24px; }
+.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; align-items: center; justify-content: center; }
+.modal.active { display: flex; }
+.modal-content { background: var(--card); width: 90%; max-width: 500px; padding: 20px; border-radius: 16px; max-height: 90vh; overflow-y: auto; }
+.modal-title { font-size: 20px; margin-bottom: 15px; }
+  label { display: block; margin-top: 12px; font-size: 14px; color: var(--sub); }
+.mod-list { margin-top: 20px; }
+.mod-item { background: var(--card); padding: 15px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+.delete-btn { background: #EF4444; width: auto; padding: 8px 12px; }
+.info { font-size: 12px; color: var(--sub); margin-top: 10px; text-align: center; }
+.preview { width: 100%; height: 120px; object-fit: cover; border-radius: 8px; margin: 8px 0; display: none; }
+.tabs { display: flex; gap: 8px; margin: 8px 0; }
+.tab { flex: 1; padding: 8px; background: var(--bg); border: 1px solid var(--sub); color: var(--text); border-radius: 8px; cursor: pointer; text-align: center; }
+.tab.active { background: var(--primary); color: white; border-color: var(--primary); }
+.warning { background: #F59E0B; color: #111827; padding: 10px; border-radius: 8px; margin: 10px 0; font-size: 12px; text-align: center; }
+</style>
+</head>
+<body>
+  <!-- LOGIN -->
+  <div class="login" id="login">
+    <div style="font-size: 40px;">🎮</div>
+    <h1>Loky-Craft-Panel</h1>
+    <p>Panel de Administración</p>
+    <input type="password" id="pass" placeholder="Contraseña">
+    <button onclick="login()">Entrar</button>
+  </div>
+
+  <!-- PANEL -->
+  <div class="panel" id="panel">
+    <div class="header">
+      <h2>Mis Mods</h2>
+      <button class="add-btn" onclick="abrirModal()">+</button>
+    </div>
+    <div class="mod-list" id="modList"></div>
+    <p class="info">✅ Los mods se guardan directo en Database<br>✅ Sin tarjeta, sin Storage<br>✅ Tu web se actualiza sola en tiempo real</p>
+  </div>
+
+  <!-- MODAL AGREGAR -->
+  <div class="modal" id="modal">
+    <div class="modal-content">
+      <div class="modal-title">Agregar Nuevo Mod</div>
+      <div class="warning">⚠️ Comprime las fotos a menos de 500KB pa que no truene</div>
+
+      <label>Nombre del mod</label>
+      <input type="text" id="nombre" placeholder="Essentials Update V1.6">
+
+      <label>Selecciona categoría</label>
+      <select id="categoria">
+        <option>ADDONS</option>
+        <option>MAPAS</option>
+        <option>SHADERS</option>
+        <option>TEXTURAS</option>
+        <option>DLC</option>
+        <option>SKINS</option>
+        <option>VERSIONES</option>
+      </select>
+
+      <label>Versión</label>
+      <input type="text" id="version" placeholder="V1.6">
+
+      <label>Descripción</label>
+      <textarea id="desc" rows="3" placeholder="Trae nuevos items útiles y crafteos..."></textarea>
+
+      <label>Link de descarga</label>
+      <input type="text" id="link" placeholder="https://mediafire.com/...">
+
+      <label>Imagen del mod</label>
+      <div class="tabs">
+        <div class="tab active" onclick="cambiarTab('archivo')">📁 Archivo</div>
+        <div class="tab" onclick="cambiarTab('link')">🔗 Link</div>
+      </div>
+
+      <div id="tab-archivo">
+        <input type="file" id="imagenArchivo" accept="image/*">
+        <img id="preview" class="preview">
+      </div>
+
+      <div id="tab-link" style="display:none;">
+        <input type="text" id="imagenLink" placeholder="https://i.imgur.com/ejemplo.png">
+      </div>
+
+      <button onclick="guardarMod()" id="btnGuardar">Guardar Mod</button>
+      <button style="background: var(--sub);" onclick="cerrarModal()">Cancelar</button>
+    </div>
+  </div>
+
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+  import { getDatabase, ref, push, onValue, remove, set } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+  // ===== TU CONFIG DE FIREBASE - SIN STORAGE =====
+  const firebaseConfig = {
+    apiKey: "AIzaSyBXhM5bFmzlVvJ5IZoz7wBiYwK05IGJQdM",
+    authDomain: "loky-craft-web.firebaseapp.com",
+    databaseURL: "https://loky-craft-web-default-rtdb.firebaseio.com",
+    projectId: "loky-craft-web",
+    storageBucket: "loky-craft-web.firebasestorage.app",
+    messagingSenderId: "928176018138",
+    appId: "1:928176018138:web:5bf04e56d029a6b5078be3",
+    measurementId: "G-6LB4J9F0CC"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const PASSWORD = "Łºƙị-Č̣ṛąfŧ"; // CAMBIA ESTA CONTRASEÑA WEE
+  let tipoImagen = 'archivo';
+
+  window.login = function() {
+    if(document.getElementById('pass').value === PASSWORD) {
+      document.getElementById('login').style.display = 'none';
+      document.getElementById('panel').style.display = 'block';
+      cargarMods();
+    } else {
+      alert('Contraseña incorrecta');
+    }
+  }
+
+  window.abrirModal = () => document.getElementById('modal').classList.add('active');
+
+  window.cerrarModal = () => {
+    document.getElementById('modal').classList.remove('active');
+    limpiarCampos();
+  }
+
+  window.cambiarTab = function(tipo) {
+    tipoImagen = tipo;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById('tab-archivo').style.display = tipo === 'archivo'? 'block' : 'none';
+    document.getElementById('tab-link').style.display = tipo === 'link'? 'block' : 'none';
+  }
+
+  // PREVIEW DE IMAGEN
+  document.getElementById('imagenArchivo').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if(file) {
+      if(file.size > 500000) {
+        alert('We esa foto pesa más de 500KB 💀 Comprimela o usa link');
+        e.target.value = '';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        document.getElementById('preview').src = e.target.result;
+        document.getElementById('preview').style.display = 'block';
+      }
+      reader.readAsDataURL(file);
+    }
+  });
+
+  function limpiarCampos() {
+    document.getElementById('nombre').value = '';
+    document.getElementById('version').value = '';
+    document.getElementById('desc').value = '';
+    document.getElementById('link').value = '';
+    document.getElementById('imagenArchivo').value = '';
+    document.getElementById('imagenLink').value = '';
+    document.getElementById('preview').style.display = 'none';
+  }
+
+  // CONVERTIR A BASE64
+  function archivoABase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = error => reject(error);
+    });
+  }
+
+  window.guardarMod = async function() {
+    const btnGuardar = document.getElementById('btnGuardar');
+    btnGuardar.disabled = true;
+    btnGuardar.innerText = 'Guardando...';
+
+    const mod = {
+      nombre: document.getElementById('nombre').value,
+      categoria: document.getElementById('categoria').value,
+      version: document.getElementById('version').value,
+      desc: document.getElementById('desc').value,
+      link: document.getElementById('link').value,
+      fecha: Date.now(),
+      descargas: 0
+    };
+
+    if(!mod.nombre ||!mod.link) {
+      alert('Pon mínimo nombre y link de descarga we');
+      btnGuardar.disabled = false;
+      btnGuardar.innerText = 'Guardar Mod';
+      return;
+    }
+
+    try {
+      // SI ES ARCHIVO, CONVERTIR A BASE64
+      if(tipoImagen === 'archivo' && document.getElementById('imagenArchivo').files[0]) {
+        const file = document.getElementById('imagenArchivo').files[0];
+        if(file.size > 500000) {
+          alert('La foto pesa más de 500KB we 💀 Usa link o comprímela');
+          btnGuardar.disabled = false;
+          btnGuardar.innerText = 'Guardar Mod';
+          return;
+        }
+        mod.imagen = await archivoABase64(file);
+      } else {
+        // USAR LINK DIRECTO
+        mod.imagen = document.getElementById('imagenLink').value || 'https://via.placeholder.com/300x150/10B981/FFFFFF?text=LOKY';
+      }
+
+      await push(ref(db, 'mods'), mod);
+      alert('MOD SUBIDO ÉLITE SIN TARJETA 🔥💀');
+      cerrarModal();
+    } catch (error) {
+      alert('Error we: ' + error);
+    } finally {
+      btnGuardar.disabled = false;
+      btnGuardar.innerText = 'Guardar Mod';
+    }
+  }
+
+  function cargarMods() {
+    onValue(ref(db, 'mods'), (snapshot) => {
+      const lista = document.getElementById('modList');
+      lista.innerHTML = '';
+      const mods = snapshot.val();
+      if(mods) {
+        Object.entries(mods).reverse().forEach(([key, mod]) => {
+          lista.innerHTML += `
+            <div class="mod-item">
+              <div>
+                <strong>${mod.nombre}</strong><br>
+                <small>${mod.categoria} - ${mod.version} | ⬇️ ${mod.descargas || 0}</small>
+              </div>
+              <button class="delete-btn" onclick="borrarMod('${key}')">Borrar</button>
+            </div>
+          `;
+        });
+      } else {
+        lista.innerHTML = '<p style="text-align:center;color:var(--sub)">No hay mods aún. Agrega el primero +</p>';
+      }
+    });
+  }
+
+  window.borrarMod = function(key) {
+    if(confirm('¿Seguro que quieres borrar este mod?')) {
+      remove(ref(db, 'mods/' + key));
+    }
+  }
+</script>
+</body>
+</html>
