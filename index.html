@@ -41,7 +41,7 @@
   <div class="login" id="login">
     <div style="font-size: 40px;">🎮</div>
     <h1>Loky-Craft-Panel</h1>
-    <p>Panel de Administración</p>
+    <p>Panel de Administración v1.3</p>
     <input type="password" id="pass" placeholder="Contraseña">
     <button onclick="login()">Entrar</button>
   </div>
@@ -67,6 +67,7 @@
 
       <label>Selecciona categoría</label>
       <select id="categoria">
+        <option>OPTIMIZADOS</option>
         <option>ADDONS</option>
         <option>MAPAS</option>
         <option>SHADERS</option>
@@ -111,7 +112,7 @@
 
   // ===== CONFIG SIN TOKEN EXPUESTO =====
   let GITHUB_TOKEN = sessionStorage.getItem('loky_github_token');
-  
+
   const GITHUB_REPO = 'calacas-cryypto/Loky-Craft-Web';
   const GITHUB_BRANCH = 'main';
   const GITHUB_FOLDER = 'imagenes';
@@ -146,7 +147,7 @@
     if(document.getElementById('pass').value === PASSWORD) {
       document.getElementById('login').style.display = 'none';
       document.getElementById('panel').style.display = 'block';
-      
+
       if(!GITHUB_TOKEN) {
         if(!pedirToken()) {
           alert('Ocupas el token pa subir imágenes we');
