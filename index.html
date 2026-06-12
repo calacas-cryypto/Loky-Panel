@@ -41,7 +41,7 @@
   <div class="login" id="login">
     <div style="font-size: 40px;">🎮</div>
     <h1>Loky-Craft-Panel</h1>
-    <p>Panel de Administración v1.3</p>
+    <p>Panel de Administración v1.4</p>
     <input type="password" id="pass" placeholder="Contraseña">
     <button onclick="login()">Entrar</button>
   </div>
@@ -85,6 +85,10 @@
 
       <label>Link de descarga</label>
       <input type="text" id="link" placeholder="https://mediafire.com/...">
+
+      <label>Link directo para descarga automática 🔥</label>
+      <input type="text" id="linkDirecto" placeholder="https://download123.mediafire.com/...">
+      <small style="color:var(--sub);font-size:11px;display:block;margin-bottom:8px">Este link se usa para el botón "Descargar ahora" en tu web. Déjalo vacío si no tienes.</small>
 
       <label>Imagen del mod</label>
       <div class="tabs">
@@ -196,6 +200,7 @@
     document.getElementById('version').value = '';
     document.getElementById('desc').value = '';
     document.getElementById('link').value = '';
+    document.getElementById('linkDirecto').value = '';
     document.getElementById('imagenArchivo').value = '';
     document.getElementById('imagenLink').value = '';
     document.getElementById('preview').style.display = 'none';
@@ -249,6 +254,7 @@
       version: document.getElementById('version').value,
       desc: document.getElementById('desc').value,
       link: document.getElementById('link').value,
+      linkDirecto: document.getElementById('linkDirecto').value,
       fecha: Date.now(),
       descargas: 0
     };
@@ -321,6 +327,7 @@
     document.getElementById('version').value = mod.version;
     document.getElementById('desc').value = mod.desc;
     document.getElementById('link').value = mod.link;
+    document.getElementById('linkDirecto').value = mod.linkDirecto || '';
 
     if(mod.imagen.startsWith('http')) {
       cambiarTabManual('link');
